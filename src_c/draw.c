@@ -709,11 +709,43 @@ circle(PyObject *self, PyObject *args, PyObject *kwargs)
     CHECK_LOAD_COLOR(colorobj)
 
     if (radius < 1 || width < 0) {
+        if (posx < 0) {
+            posx = 0;
+        }
+        if (posy < 0) {
+            posy = 0;
+        }
+        if (posx > surf->clip_rect.w - 1) {
+            posx = surf->clip_rect.w - 1;
+        }
+        if (posy > surf->clip_rect.h - 1) {
+            posy = surf->clip_rect.h - 1;
+        }
+
         return pgRect_New4(posx, posy, 0, 0);
     }
 
     if (width > radius) {
         width = radius;
+    }
+
+    if (posx > surf->clip_rect.x + surf->clip_rect.w + radius ||
+        posx < surf->clip_rect.x - radius ||
+        posy > surf->clip_rect.y + surf->clip_rect.h + radius ||
+        posy < surf->clip_rect.y - radius) {
+        if (posx < 0) {
+            posx = 0;
+        }
+        if (posy < 0) {
+            posy = 0;
+        }
+        if (posx > surf->clip_rect.w - 1) {
+            posx = surf->clip_rect.w - 1;
+        }
+        if (posy > surf->clip_rect.h - 1) {
+            posy = surf->clip_rect.h - 1;
+        }
+        return pgRect_New4(posx, posy, 0, 0);
     }
 
     if (!pgSurface_Lock(surfobj)) {
@@ -743,12 +775,27 @@ circle(PyObject *self, PyObject *args, PyObject *kwargs)
         return RAISE(PyExc_RuntimeError, "error unlocking surface");
     }
     if (drawn_area[0] != INT_MAX && drawn_area[1] != INT_MAX &&
-        drawn_area[2] != INT_MIN && drawn_area[3] != INT_MIN)
+        drawn_area[2] != INT_MIN && drawn_area[3] != INT_MIN) {
         return pgRect_New4(drawn_area[0], drawn_area[1],
                            drawn_area[2] - drawn_area[0] + 1,
                            drawn_area[3] - drawn_area[1] + 1);
-    else
+    }
+    else {
+        if (posx < 0) {
+            posx = 0;
+        }
+        if (posy < 0) {
+            posy = 0;
+        }
+        if (posx > surf->clip_rect.w - 1) {
+            posx = surf->clip_rect.w - 1;
+        }
+        if (posy > surf->clip_rect.h - 1) {
+            posy = surf->clip_rect.h - 1;
+        }
+
         return pgRect_New4(posx, posy, 0, 0);
+    }
 }
 
 static PyObject *
@@ -2025,15 +2072,6 @@ draw_circle_filled(SDL_Surface *surf, int x0, int y0, int radius, Uint32 color,
     int ddF_y = -2 * radius;
     int x = 0;
     int y = radius;
-    int xmin = INT_MAX;
-    int xmax = INT_MIN;
-
-    if (x0 < 0) {
-        xmin = x0 + INT_MAX + 1;
-    }
-    else {
-        xmax = INT_MAX - x0;
-    }
 
     while (x < y) {
         if (f >= 0) {
@@ -2048,16 +2086,15 @@ draw_circle_filled(SDL_Surface *surf, int x0, int y0, int radius, Uint32 color,
         /* optimisation to avoid overdrawing and repeated return rect checks:
            only draw a line if y-step is about to be decreased. */
         if (f >= 0) {
-            drawhorzlineclipbounding(surf, color, x0 - MIN(x, xmin),
-                                     y0 + y - 1, x0 + MIN(x - 1, xmax),
+            drawhorzlineclipbounding(surf, color, x0 - x, y0 + y - 1,
+                                     x0 + x - 1, drawn_area);
+            drawhorzlineclipbounding(surf, color, x0 - x, y0 - y, x0 + x - 1,
                                      drawn_area);
-            drawhorzlineclipbounding(surf, color, x0 - MIN(x, xmin), y0 - y,
-                                     x0 + MIN(x - 1, xmax), drawn_area);
         }
-        drawhorzlineclipbounding(surf, color, x0 - MIN(y, xmin), y0 + x - 1,
-                                 x0 + MIN(y - 1, xmax), drawn_area);
-        drawhorzlineclipbounding(surf, color, x0 - MIN(y, xmin), y0 - x,
-                                 x0 + MIN(y - 1, xmax), drawn_area);
+        drawhorzlineclipbounding(surf, color, x0 - y, y0 + x - 1, x0 + y - 1,
+                                 drawn_area);
+        drawhorzlineclipbounding(surf, color, x0 - y, y0 - x, x0 + y - 1,
+                                 drawn_area);
     }
 }
 
