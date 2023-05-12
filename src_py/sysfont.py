@@ -157,16 +157,15 @@ def _font_finder_darwin():
         "/System/Library/Fonts/Supplemental",
     ]
 
-    username = os.getenv("USER")
-    if username:
+    if username := os.getenv("USER"):
         locations.append(f"/Users/{username}/Library/Fonts")
 
     strange_root = "/System/Library/Assets/com_apple_MobileAsset_Font3"
     if exists(strange_root):
         strange_locations = os.listdir(strange_root)
-        for loc in strange_locations:
-            locations.append(f"{strange_root}/{loc}/AssetData")
-
+        locations.extend(
+            f"{strange_root}/{loc}/AssetData" for loc in strange_locations
+        )
     fonts = {}
 
     for location in locations:
@@ -184,18 +183,18 @@ def _font_finder_darwin():
 
 def initsysfonts_darwin():
     """Read the fonts on MacOS, and OS X."""
-    #  fc-list is not likely to be there on pre 10.4.x, or MacOS 10.10+
-    fonts = {}
-
     fclist_locations = [
         "/usr/X11/bin/fc-list",  # apple x11
         "/usr/X11R6/bin/fc-list",  # apple x11
     ]
-    for bin_location in fclist_locations:
-        if exists(bin_location):
-            fonts = initsysfonts_unix(bin_location)
-            break
-
+    fonts = next(
+        (
+            initsysfonts_unix(bin_location)
+            for bin_location in fclist_locations
+            if exists(bin_location)
+        ),
+        {},
+    )
     if len(fonts) == 0:
         fonts = _font_finder_darwin()
 

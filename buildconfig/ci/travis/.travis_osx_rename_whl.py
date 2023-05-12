@@ -9,6 +9,7 @@ Therefore, this script tells a small lie about the wheels we're producing. By
 claiming they are fat ('intel') wheels, pip will install them on more Python
 installations. This should not cause problems for the vast majority of users.
 """
+
 import glob
 import os
 import sys
@@ -16,7 +17,7 @@ import sys
 # There should be exactly one .whl
 filenames = glob.glob('dist/*macosx*x86_64.whl')
 
-if len(filenames) < 1:
+if not filenames:
     sys.exit("No wheels found")
 elif len(filenames) > 1:
     print("Multiple wheels found:")
